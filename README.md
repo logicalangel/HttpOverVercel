@@ -26,7 +26,7 @@ npm -v
 
 ```bash
 git clone https://github.com/block-p/vercelmasterhttp.git
-cd MasterHttpRelayVPN
+cd vercelmasterhttp
 ```
 
 ## 3) نصب Vercel CLI
