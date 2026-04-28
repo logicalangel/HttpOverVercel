@@ -1,5 +1,8 @@
 {
   "name": "masterhttprelayvpn-vercel-relay",
   "private": true,
-  "type": "module"
+  "type": "module",
+  "dependencies": {
+    "@upstash/redis": "^1.34.0"
+  }
 }
