@@ -25,27 +25,24 @@ export default async function handler(request) {
   }
 
   let total = 0, bytes = 0, errors = 0, domains = [];
+  let redisError = null;
   try {
     const redis = Redis.fromEnv();
     [total, bytes, errors, domains] = await Promise.all([
       redis.get("stats:total"),
       redis.get("stats:bytes"),
       redis.get("stats:errors"),
-      // Returns [{ member, score }, ...] sorted highest-first
       redis.zrange("stats:domains", 0, 24, { rev: true, withScores: true }),
     ]);
     total  = Number(total)  || 0;
     bytes  = Number(bytes)  || 0;
     errors = Number(errors) || 0;
     domains = Array.isArray(domains) ? domains : [];
-  } catch (err) {
-    return new Response(
-      `<p style="font-family:sans-serif;padding:2rem">⚠️ KV error: ${esc(String(err))}<br>Make sure Vercel KV is linked to this project.</p>`,
-      { status: 500, headers: { "content-type": "text/html; charset=utf-8" } }
-    );
+  } catch {
+    redisError = true;
   }
 
-  // @vercel/kv returns either [{member,score},...] or interleaved [m,s,m,s,...]
+  // @upstash/redis returns [{member,score},...] or interleaved [m,s,m,s,...]
   const domainRows = [];
   if (domains.length > 0 && typeof domains[0] === "object") {
     for (const item of domains) domainRows.push({ domain: item.member, count: item.score });
@@ -54,7 +51,7 @@ export default async function handler(request) {
       domainRows.push({ domain: domains[i], count: domains[i + 1] });
   }
 
-  return new Response(renderHTML(total, bytes, errors, domainRows), {
+  return new Response(renderHTML(total, bytes, errors, domainRows, redisError), {
     headers: { "content-type": "text/html; charset=utf-8" },
   });
 }
@@ -70,7 +67,7 @@ function esc(s) {
   return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
-function renderHTML(total, bytes, errors, domains) {
+function renderHTML(total, bytes, errors, domains, redisError) {
   const maxCount = domains[0]?.count || 1;
 
   const rows = domains.map((d, i) => {
@@ -94,6 +91,7 @@ function renderHTML(total, bytes, errors, domains) {
 body{font-family:system-ui,-apple-system,sans-serif;background:#0f1117;color:#e2e8f0;padding:2rem;min-height:100vh}
 h1{font-size:1.4rem;font-weight:700;margin-bottom:1.5rem;color:#f8fafc;display:flex;align-items:center;gap:.5rem}
 h2{font-size:.7rem;font-weight:600;margin:2rem 0 .75rem;color:#64748b;text-transform:uppercase;letter-spacing:.08em}
+.notice{background:#1c1a10;border:1px solid #854d0e;border-radius:8px;padding:.75rem 1rem;margin-bottom:1.5rem;font-size:.8rem;color:#fbbf24}
 .cards{display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:.5rem}
 .card{background:#1e2532;border:1px solid #2d3748;border-radius:10px;padding:1.1rem 1.4rem;min-width:140px}
 .card .label{font-size:.7rem;color:#64748b;text-transform:uppercase;letter-spacing:.06em;margin-bottom:.3rem}
@@ -113,6 +111,8 @@ td.domain{font-family:ui-monospace,monospace;color:#7dd3fc}
 <body>
 <h1>🌐 HttpOverVercel &mdash; Stats</h1>
 
+${redisError ? `<div class="notice">⚠️ Redis not configured — stats are unavailable. Add Upstash Redis via <strong>Vercel → Storage</strong> to enable tracking.</div>` : ""}
+
 <h2>Overview</h2>
 <div class="cards">
   <div class="card">
@@ -131,7 +131,7 @@ td.domain{font-family:ui-monospace,monospace;color:#7dd3fc}
 
 <h2>Top Domains</h2>
 ${domains.length === 0
-  ? '<p style="color:#475569;font-size:.875rem;padding:.5rem 0">No data yet — start using the proxy.</p>'
+  ? `<p style="color:#475569;font-size:.875rem;padding:.5rem 0">${redisError ? "Unavailable — Redis not configured." : "No data yet — start using the proxy."}</p>`
   : `<table>
 <thead><tr><th>#</th><th>Domain</th><th style="text-align:right">Requests</th><th></th></tr></thead>
 <tbody>
