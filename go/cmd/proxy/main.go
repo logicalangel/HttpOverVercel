@@ -98,6 +98,10 @@ func main() {
 	defer stop()
 
 	logger.Info("Starting proxy", "addr", fmt.Sprintf("%s:%d", cfg.ListenHost, cfg.ListenPort))
+	if cfg.WorkerHost != "" {
+		logger.Info("Stats dashboard", "url", fmt.Sprintf("https://%s/api/stats", cfg.WorkerHost),
+			"user", cfg.StatsUser)
+	}
 	if err := srv.ListenAndServe(ctx); err != nil {
 		logger.Error("Server error", "err", err)
 		os.Exit(1)

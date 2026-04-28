@@ -38,6 +38,42 @@ func TestLoadDefaults(t *testing.T) {
 	if cfg.LogLevel != "INFO" {
 		t.Errorf("LogLevel: got %q want %q", cfg.LogLevel, "INFO")
 	}
+	if cfg.StatsUser != "admin" {
+		t.Errorf("StatsUser: got %q want %q", cfg.StatsUser, "admin")
+	}
+	if cfg.StatsPass != "changeme" {
+		t.Errorf("StatsPass: got %q want %q", cfg.StatsPass, "changeme")
+	}
+}
+
+func TestLoadDefaultAuthKey(t *testing.T) {
+	dir := t.TempDir()
+	// auth_key omitted — should get default "changeme"
+	path := writeConfigFile(t, dir, `{"worker_host":"example.vercel.app"}`)
+
+	cfg, err := Load(path)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if cfg.AuthKey != "changeme" {
+		t.Errorf("AuthKey default: got %q want %q", cfg.AuthKey, "changeme")
+	}
+}
+
+func TestLoadStatsCredentials(t *testing.T) {
+	dir := t.TempDir()
+	path := writeConfigFile(t, dir, `{"auth_key":"secret","worker_host":"x.vercel.app","stats_user":"alice","stats_pass":"s3cr3t"}`)
+
+	cfg, err := Load(path)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if cfg.StatsUser != "alice" {
+		t.Errorf("StatsUser: got %q want %q", cfg.StatsUser, "alice")
+	}
+	if cfg.StatsPass != "s3cr3t" {
+		t.Errorf("StatsPass: got %q want %q", cfg.StatsPass, "s3cr3t")
+	}
 }
 
 func TestLoadEnvOverride(t *testing.T) {

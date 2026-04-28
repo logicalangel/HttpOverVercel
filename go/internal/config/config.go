@@ -17,6 +17,8 @@ type Config struct {
 	RelayPath   string            `json:"relay_path"`
 	RelayPaths  []string          `json:"relay_paths"`
 	AuthKey     string            `json:"auth_key"`
+	StatsUser   string            `json:"stats_user"`
+	StatsPass   string            `json:"stats_pass"`
 	EnableBatch bool              `json:"enable_batch"`
 	EnableH2    bool              `json:"enable_h2"`
 	ListenHost  string            `json:"listen_host"`
@@ -29,6 +31,15 @@ type Config struct {
 func applyDefaults(c *Config) {
 	if c.Mode == "" {
 		c.Mode = "vercel_edge"
+	}
+	if c.AuthKey == "" {
+		c.AuthKey = "changeme"
+	}
+	if c.StatsUser == "" {
+		c.StatsUser = "admin"
+	}
+	if c.StatsPass == "" {
+		c.StatsPass = "changeme"
 	}
 	if c.ListenHost == "" {
 		c.ListenHost = "127.0.0.1"
@@ -59,6 +70,12 @@ func normalizeModes(c *Config) {
 func applyEnvOverrides(c *Config) {
 	if v := os.Getenv("DFT_AUTH_KEY"); v != "" {
 		c.AuthKey = v
+	}
+	if v := os.Getenv("DFT_STATS_USER"); v != "" {
+		c.StatsUser = v
+	}
+	if v := os.Getenv("DFT_STATS_PASS"); v != "" {
+		c.StatsPass = v
 	}
 	if v := os.Getenv("DFT_RELAY_PATH"); v != "" {
 		c.RelayPath = v
