@@ -1,6 +1,6 @@
 export const config = { runtime: "edge" };
 
-import { Redis } from "@upstash/redis/cloudflare";
+import { Redis } from "@upstash/redis";
 
 const STATS_USER = (process.env.STATS_USER || "").trim();
 const STATS_PASS = (process.env.STATS_PASS || "").trim();

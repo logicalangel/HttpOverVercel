@@ -1,6 +1,6 @@
 export const config = { runtime: "edge" };
 
-import { Redis } from "@upstash/redis/cloudflare";
+import { Redis } from "@upstash/redis";
 
 const AUTH_KEY = process.env.AUTH_KEY || "";
 const UPSTREAM_TIMEOUT_MS = parseInt(process.env.UPSTREAM_TIMEOUT_MS || "30000", 10);
