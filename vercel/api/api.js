@@ -11,14 +11,22 @@ const SKIP_REQUEST_HEADERS = new Set([
   "proxy-authorization",
 ]);
 
+function log(level, msg, extra = {}) {
+  console.log(JSON.stringify({ level, msg, ts: new Date().toISOString(), ...extra }));
+}
+
 export default async function handler(request) {
+  const start = Date.now();
+
   if (request.method !== "POST") {
+    log("warn", "method not allowed", { method: request.method });
     return new Response("POST only", { status: 405 });
   }
 
   // Auth check
   const authKey = request.headers.get("x-auth-key");
   if (!AUTH_KEY || authKey !== AUTH_KEY) {
+    log("warn", "unauthorized", { ip: request.headers.get("x-forwarded-for") });
     return new Response("Unauthorized", { status: 401 });
   }
 
@@ -27,6 +35,7 @@ export default async function handler(request) {
 
   const urlB64 = request.headers.get("x-relay-url");
   if (!urlB64) {
+    log("error", "missing x-relay-url");
     return new Response("missing x-relay-url", { status: 400 });
   }
 
@@ -34,10 +43,12 @@ export default async function handler(request) {
   try {
     targetURL = atob(urlB64);
   } catch {
+    log("error", "invalid x-relay-url base64");
     return new Response("invalid x-relay-url", { status: 400 });
   }
 
   if (!/^https?:\/\//i.test(targetURL)) {
+    log("error", "bad url scheme", { url: targetURL });
     return new Response("bad url scheme", { status: 400 });
   }
 
@@ -53,7 +64,7 @@ export default async function handler(request) {
         }
       }
     } catch {
-      // ignore malformed headers
+      log("warn", "malformed x-relay-headers, ignoring");
     }
   }
 
@@ -62,6 +73,8 @@ export default async function handler(request) {
     method !== "GET" && method !== "HEAD"
       ? await request.arrayBuffer()
       : undefined;
+
+  log("info", "relay", { method, url: targetURL, bodyBytes: body?.byteLength ?? 0 });
 
   // Fetch upstream target
   let upResp;
@@ -73,8 +86,12 @@ export default async function handler(request) {
       redirect: "follow",
     });
   } catch (err) {
+    log("error", "upstream fetch failed", { url: targetURL, err: String(err), ms: Date.now() - start });
     return new Response(`upstream fetch failed: ${err}`, { status: 502 });
   }
+
+  const ms = Date.now() - start;
+  log("info", "done", { method, url: targetURL, status: upResp.status, ms });
 
   // Collect response headers as JSON → base64
   const respHdrs = {};
