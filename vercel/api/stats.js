@@ -2,8 +2,8 @@ export const config = { runtime: "edge" };
 
 import { Redis } from "@upstash/redis/cloudflare";
 
-const STATS_USER = process.env.STATS_USER || "";
-const STATS_PASS = process.env.STATS_PASS || "";
+const STATS_USER = (process.env.STATS_USER || "").trim();
+const STATS_PASS = (process.env.STATS_PASS || "").trim();
 
 function checkAuth(authHeader) {
   if (!authHeader || !authHeader.startsWith("Basic ")) return false;
