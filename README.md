@@ -106,19 +106,50 @@ cd ..
 
 ---
 
-## ۵) تنظیم متغیر محیطی `AUTH_KEY` در Vercel
+## ۵) تنظیم متغیرهای محیطی در Vercel
 
-در داشبورد Vercel:
+در داشبورد Vercel وارد `Project → Settings → Environment Variables` شوید:
 
-- `Project → Settings → Environment Variables → Add`
-- **Key:** `AUTH_KEY`
-- **Value:** یک کلید امن دلخواه (این مقدار را در `config.json` هم وارد می‌کنید)
+| Key | Value | توضیح |
+|---|---|---|
+| `AUTH_KEY` | یک کلید امن دلخواه | احراز هویت بین کلاینت و Edge Function |
+| `STATS_USER` | نام کاربری (پیش‌فرض: `admin`) | ورود به صفحه آمار |
+| `STATS_PASS` | رمز عبور (پیش‌فرض: `changeme`) | ورود به صفحه آمار |
 
 بعد از ذخیره، حتماً Redeploy کنید:
 
 ```bash
-cd vercel && vercel --prod
+vercel --prod --yes
 ```
+
+---
+
+## ۶) راه‌اندازی آمار (اختیاری — با Upstash Redis)
+
+برای فعال‌سازی صفحه آمار به یک Redis نیاز دارید.
+
+### روش اول: از طریق داشبورد Vercel
+`Project → Storage → Add Store → Upstash Redis (رایگان)` → Create → Link to project
+
+Vercel به صورت خودکار `UPSTASH_REDIS_REST_URL` و `UPSTASH_REDIS_REST_TOKEN` را inject می‌کند.
+
+### روش دوم: دستی
+
+```bash
+printf 'https://YOUR_ENDPOINT.upstash.io' | vercel env add UPSTASH_REDIS_REST_URL production
+printf 'YOUR_TOKEN' | vercel env add UPSTASH_REDIS_REST_TOKEN production
+vercel --prod --yes
+```
+
+### دسترسی به صفحه آمار
+
+```
+https://YOUR_PROJECT.vercel.app/api/stats
+```
+
+با `STATS_USER` و `STATS_PASS` وارد شوید. شامل تعداد درخواست‌ها، بایت‌های ارسال‌شده، خطاها و جدول ۲۵ دامنه پراستفاده.
+
+> اگر Redis راه‌اندازی نشده باشد، صفحه آمار باز می‌شود اما اعداد صفر نمایش می‌دهد. پروکسی اصلی بدون مشکل کار می‌کند.
 
 ---
 
@@ -143,7 +174,9 @@ cp config.example.json config.json
 {
   "worker_host": "YOUR_PROJECT.vercel.app",
   "relay_path": "/api/api",
-  "auth_key": "SAME_VALUE_AS_VERCEL_AUTH_KEY",
+  "auth_key": "changeme",
+  "stats_user": "admin",
+  "stats_pass": "changeme",
   "listen_host": "127.0.0.1",
   "listen_port": 8085,
   "log_level": "INFO",
@@ -155,6 +188,7 @@ cp config.example.json config.json
 |---|---|
 | `worker_host` | آدرس پروژه Vercel بدون `https://` (بخش Domains در داشبورد) |
 | `auth_key` | باید دقیقاً برابر `AUTH_KEY` در Vercel باشد |
+| `stats_user` / `stats_pass` | باید با `STATS_USER` / `STATS_PASS` در Vercel یکسان باشد |
 | `relay_path` | مقدار ثابت `/api/api` |
 | `listen_port` | پورت پروکسی محلی (پیش‌فرض: `8085`) |
 
@@ -260,7 +294,8 @@ go/
   internal/relay/   — کلاینت relay (پروتکل باینری)
   internal/proxy/   — سرور پروکسی HTTP/HTTPS
 vercel/
-  api/api.js        — Vercel Edge Function
+  api/api.js        — Vercel Edge Function (پروکسی اصلی)
+  api/stats.js      — صفحه آمار (محافظت‌شده با Basic Auth)
 config.example.json
 ```
 
