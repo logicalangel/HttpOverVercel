@@ -39,3 +39,5 @@ go/proxy
 go/proxy.exe
 /proxy
 /proxy.exe
+.vercel
+.env*.local
