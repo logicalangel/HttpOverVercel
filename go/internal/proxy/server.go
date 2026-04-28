@@ -10,6 +10,7 @@ import (
 	"net"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/logicalangel/HttpOverVercel/internal/mitm"
 	"github.com/logicalangel/HttpOverVercel/internal/relay"
@@ -168,6 +169,9 @@ func (s *Server) handleHTTP(ctx context.Context, conn net.Conn, req *http.Reques
 }
 
 func (s *Server) relayRequest(ctx context.Context, req *http.Request, targetURL string) ([]byte, error) {
+	ctx, cancel := context.WithTimeout(ctx, 40*time.Second)
+	defer cancel()
+
 	body, err := io.ReadAll(io.LimitReader(req.Body, 64<<20)) // 64 MB limit
 	if err != nil {
 		return nil, fmt.Errorf("reading request body: %w", err)

@@ -37,5 +37,5 @@ domainfront_certs_*/
 # Go build output
 go/proxy
 go/proxy.exe
-proxy
-proxy.exe
+/proxy
+/proxy.exe

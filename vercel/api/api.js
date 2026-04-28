@@ -1,6 +1,7 @@
 export const config = { runtime: "edge" };
 
 const AUTH_KEY = process.env.AUTH_KEY || "";
+const UPSTREAM_TIMEOUT_MS = parseInt(process.env.UPSTREAM_TIMEOUT_MS || "30000", 10);
 
 const SKIP_REQUEST_HEADERS = new Set([
   "host",
@@ -84,10 +85,14 @@ export default async function handler(request) {
       headers,
       body: body && body.byteLength > 0 ? body : undefined,
       redirect: "follow",
+      signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),
     });
   } catch (err) {
-    log("error", "upstream fetch failed", { url: targetURL, err: String(err), ms: Date.now() - start });
-    return new Response(`upstream fetch failed: ${err}`, { status: 502 });
+    const isTimeout = err?.name === "TimeoutError" || err?.name === "AbortError";
+    const status = isTimeout ? 504 : 502;
+    const label = isTimeout ? "upstream timeout" : "upstream fetch failed";
+    log("error", label, { url: targetURL, err: String(err), ms: Date.now() - start });
+    return new Response(`${label}: ${err}`, { status });
   }
 
   const ms = Date.now() - start;

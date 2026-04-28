@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 	"sync/atomic"
+	"time"
 )
 
 var hopByHop = map[string]bool{
@@ -57,7 +58,10 @@ func NewClient(workerHost, authKey string, paths []string, verifySSL bool) *Clie
 		workerHost: workerHost,
 		authKey:    authKey,
 		paths:      paths,
-		httpClient: &http.Client{Transport: transport},
+		httpClient: &http.Client{
+			Transport: transport,
+			Timeout:   45 * time.Second,
+		},
 	}
 }
 
