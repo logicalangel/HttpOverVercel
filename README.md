@@ -1,20 +1,43 @@
 # HttpOverVercel — راهنمای کامل راه‌اندازی
 
-پروکسی HTTP/HTTPS که تمام ترافیک را از طریق یک Vercel Edge Function تونل می‌کند.  
+پروکسی HTTP/HTTPS که تمام ترافیک را از طریق یک Vercel Edge Function تونل می‌کند.
 مناسب برای مناطقی که تنها دسترسی به سرویس‌های Vercel وجود دارد.
 
 > **نسخه Go** — بدون نیاز به Python یا pip. یک فایل اجرایی تکی، کارایی بالا، مصرف پهنای باند ۳۳٪ کمتر نسبت به نسخه قدیمی.
 
 ---
 
-## ۱) پیش‌نیازها
+## ۰) دانلود فایل آماده (پیشنهادی)
+
+نیازی به نصب Go نیست — فایل باینری آماده را از صفحه Releases دانلود کنید:
+
+👉 **https://github.com/logicalangel/HttpOverVercel/releases/latest**
+
+| سیستم‌عامل | فایل |
+|---|---|
+| Linux x64 | `proxy-linux-amd64` |
+| Linux ARM64 | `proxy-linux-arm64` |
+| macOS Intel | `proxy-darwin-amd64` |
+| macOS Apple Silicon | `proxy-darwin-arm64` |
+| Windows x64 | `proxy-windows-amd64.exe` |
+
+بعد از دانلود روی Linux/macOS:
+
+```bash
+chmod +x proxy-*
+./proxy-linux-amd64 -c config.json   # یا proxy-darwin-arm64 و غیره
+```
+
+---
+
+## ۱) پیش‌نیازها (فقط برای build از سورس)
 
 | ابزار | توضیح |
 |---|---|
 | اکانت Vercel | برای دیپلوی Edge Function |
 | `git` | دریافت پروژه |
 | `npm` | نصب Vercel CLI |
-| Go 1.21+ | **فقط برای build از سورس** — در غیر این صورت فایل باینری آماده را دانلود کنید |
+| Go 1.21+ | فقط اگر می‌خواهید از سورس build کنید |
 
 نصب Node.js (برای npm): https://nodejs.org/en/download
 
@@ -29,7 +52,7 @@ cd HttpOverVercel
 
 ---
 
-## ۳) ساخت کلاینت Go
+## ۳) ساخت کلاینت Go (اختیاری — اگر فایل آماده دانلود نکردید)
 
 ### از سورس (همه سیستم‌عامل‌ها)
 
@@ -78,6 +101,8 @@ vercel        # Preview deploy (اولین بار)
 vercel --prod # Production deploy
 cd ..
 ```
+
+> **مهم:** در داشبورد Vercel، وارد `Project → Settings → General → Root Directory` شوید و مقدار `vercel` را وارد کنید تا هر push به GitHub به صورت خودکار از پوشه درست دیپلوی شود.
 
 ---
 
@@ -217,24 +242,17 @@ Firefox از CA سیستم استفاده نمی‌کند؛ باید دستی im
 ## ۱۱) تست سریع سلامت
 
 ```bash
-curl -x http://127.0.0.1:8085 https://example.com
+curl -x http://127.0.0.1:8085 -sS https://httpbin.org/get
 ```
 
-یا تست مستقیم endpoint روی Vercel:
-
-```bash
-curl -sS "https://YOUR_PROJECT.vercel.app/api/api" \
-  -H "X-Auth-Key: YOUR_AUTH_KEY" \
-  -H "X-Relay-Method: GET" \
-  -H "X-Relay-URL: aHR0cHM6Ly9leGFtcGxlLmNvbQ==" \
-  -H "X-Relay-Headers: e30="
-```
+باید یک JSON با `"origin"` برابر IP سرور Vercel برگردد (نه IP شما).
 
 ---
 
 ## ۱۲) ساختار پروژه
 
 ```
+.github/workflows/release.yml  — CI/CD: ساخت باینری برای همه پلتفرم‌ها
 go/
   cmd/proxy/        — نقطه ورود CLI
   internal/config/  — بارگذاری تنظیمات
